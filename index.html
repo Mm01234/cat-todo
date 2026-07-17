@@ -66,8 +66,26 @@
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
         @keyframes bounce { 0% { transform: scale(1); } 30% { transform: scale(1.1); } 50% { transform: scale(0.95); } 100% { transform: scale(1); } }
 
-        .speech-bubble { position: fixed; background: var(--card-bg); border: 2px solid var(--primary); padding: 10px 16px; border-radius: 20px 20px 4px 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); font-size: 14px; opacity: 0; visibility: hidden; transform: translateY(8px); transition: all 0.25s ease; pointer-events: none; color: var(--text); z-index: 9999; max-width: 260px; white-space: normal; word-break: break-word; }
-        .speech-bubble.show { opacity: 1; visibility: visible; transform: translateY(0); }
+        .speech-bubble {
+            position: fixed;
+            background: var(--card-bg);
+            border: 2px solid var(--primary);
+            padding: 10px 16px;
+            border-radius: 20px 20px 20px 4px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            font-size: 14px;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+            pointer-events: none;
+            color: var(--text);
+            z-index: 9999;
+            max-width: 260px;
+            white-space: normal; word-break: break-word;
+            /* 去掉之前的 transform 偏移 */
+        }
+        .speech-bubble.show {
+            opacity: 1; visibility: visible;
+        }
 
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-right: 120px; }
         h1 { font-size: 1.8rem; font-weight: 600; }
@@ -220,144 +238,54 @@
             if (!dailyData[todayStr]) dailyData[todayStr] = { completed: 0, focusSeconds: 0 };
             let achievements = {};
             try { achievements = JSON.parse(localStorage.getItem('imgAchievements')) || {}; } catch(e) { achievements = {}; }
-
             const achievementDefs = [
                 { id: 'first_blood', name: '第一滴血', desc: '完成第一个任务', check: () => tasks.some(t => t.completed) },
                 { id: 'task_master', name: '任务收割机', desc: '累计完成10个任务', check: () => tasks.filter(t => t.completed).length >= 10 },
                 { id: 'focus_2h', name: '专注学徒', desc: '累计专注2小时', check: () => totalFocusSeconds() >= 7200 },
                 { id: 'no_escape', name: '绝不逃跑', desc: '完成一次完整专注不中断', check: () => achievements.no_escape === true },
-                { 
-                    id: 'all_done', 
-                    name: '清空列表', 
-                    desc: '其余成就全部解锁 + 清空所有任务', 
-                    check: () => {
-                        const otherDone = achievements.first_blood && achievements.task_master && achievements.focus_2h && achievements.no_escape;
-                        return otherDone && tasks.every(t => t.completed);
-                    }
-                },
+                { id: 'all_done', name: '清空列表', desc: '其余成就全部解锁 + 清空所有任务', check: () => { const otherDone = achievements.first_blood && achievements.task_master && achievements.focus_2h && achievements.no_escape; return otherDone && tasks.every(t => t.completed); } },
             ];
-
             function totalFocusSeconds() { let t=0; for (let d in dailyData) t += dailyData[d].focusSeconds||0; return t; }
-            function updateAchievements(silent=false) {
-                let unlock=false;
-                achievementDefs.forEach(def => {
-                    if(!achievements[def.id] && def.check()) {
-                        achievements[def.id]=true;
-                        unlock=true;
-                        if(!silent) showBubble(`🏆 解锁成就：${def.name}！`,5000);
-                    }
-                });
-                if(unlock) {
-                    localStorage.setItem('imgAchievements',JSON.stringify(achievements));
-                    updateAchievementBadge();
-                }
-            }
+            function updateAchievements(silent=false) { let unlock=false; achievementDefs.forEach(def => { if(!achievements[def.id] && def.check()){ achievements[def.id]=true; unlock=true; if(!silent) showBubble(`🏆 解锁成就：${def.name}！`,5000); } }); if(unlock){ localStorage.setItem('imgAchievements',JSON.stringify(achievements)); updateAchievementBadge(); } }
             function updateAchievementBadge() { document.getElementById('achievementCount').textContent = Object.keys(achievements).length; }
             function resetAchievements() { if(confirm('确定重置所有成就吗？')){ achievements={}; localStorage.setItem('imgAchievements',JSON.stringify(achievements)); updateAchievementBadge(); showBubble('成就已重置，重新证明自己吧！',3000); } }
             function saveDailyData() { localStorage.setItem('imgDailyData',JSON.stringify(dailyData)); }
             let currentFilter='all', searchQuery='', fortuneTaskId=null;
-
-            const spriteLines = {
-                zero: ["喵？任务列表比我的脸还干净呢～","你是打算用意念写待办吗？","盯着空列表发呆，也算一种冥想吧。","快点写点什么啦，不然我都要睡着了。","再不行动，我就把你的小鱼干吃光。","今天的目标：打开页面，然后……就没有然后了？","你的拖延症已经突破天际了。","喂，至少装装样子输入几个字嘛。","我的猫耳都要耷拉下来了……因为无聊。"],
-                low: ["哦？终于肯动爪子了？","这点进度，连只蜗牛都比你快。","做了一点点就想求表扬？想得美。","万里长征才迈出第一爪，悠着点。","我还以为你要直接放弃呢。","开头总是美好的，结尾嘛……不好说。","不错哦～才怪，后面还有一堆呢。","至少你打开了页面，这已经超过昨天的你了。","继续加油，虽然我知道你坚持不了太久。"],
-                mid: ["过半了？我差点不敢相信自己的眼睛。","进度条在爬，但你已经开始想摸鱼了对吧？","还行吧，勉强不像在摆烂。","你是不是偷偷删了几个任务？别以为我不知道。","一半和没做有什么区别？继续继续。","终于有点人样了，继续保持～","按照这个速度，明天应该能做完……吧？","警告：剩余任务正在暗中观察你。","别骄傲，后面那些才是真正的硬骨头。"],
-                high: ["哇哦，你居然快做完了？太阳打西边出来了？","就差一点点了，别在最后掉链子哦。","胜利在望，但你通常这个时候会开始刷手机。","冲刺阶段了，拿出你吃饭的劲头来！","我已经准备好嘲讽你了……等等，你居然要完成了？","再加把劲，我就勉强承认你是个正常人。","别松懈，最后一个任务最容易拖到明天。","不敢相信我居然有点欣慰……一定是错觉。","完成之后记得截图，毕竟这种场面不多见。"],
-                full: ["全……全部完成了？！你被盗号了吗？","天哪，你竟然清空了列表，我收回之前所有毒舌。","不可能，绝对不可能，你是不是直接删光了？","好吧，今天你赢了，允许你摸一会儿鱼。","恭喜！虽然明天又会新增一堆任务。","今天的效率够我吹一辈子了。","你是不是偷偷喝了精力药水？","全部完成的感觉怎么样？反正我体会不到。","给你一朵小红花🌺——明天继续加油哦～","哼！只是这次运气好而已，别得意忘形！","我才没有觉得你很厉害呢……完全没觉得！","做完了？……那、那就勉强夸你一句好了。","这种程度对得起你的智商了，继续努力……也不是不行。"]
-            };
-            const actionLines = {
-                add: ["又加任务？你倒是做啊！","清单越来越长，你的行动力越来越短。","新任务+1，完成概率-100%。","你这是把下周的事也列出来了？真有远见。","添加的时候意气风发，做的时候就选择性失忆。","再加下去就要翻页了，离谱。","写下来就以为自己做了？天真。","任务清单比你的工作日志还厚。"],
-                complete: ["哦，终于肯动一下了？","就这？我还以为要放烟花呢。","一个任务而已，至于这么开心？","恭喜你离成功又近了0.01%。","做完了？你确定不是手滑点了勾？","消灭一个，还剩一堆，继续吧。","值得鼓励，虽然你只是做了该做的事。","这个任务完成了，下个任务打算拖几天？"],
-                complete_tsundere: ["哼，才完成一个而已，我一点都没高兴！","别误会，我只是刚好路过看到你点了勾。","完、完成了？…我才不会说干得漂亮呢！","做的不错……啊不对，我是说你还差得远呢！","算你勉强及格，但别指望我会表扬你。","哼～这次就让你得意一下，下不为例！","没、没想到你还真能做完，稍微对你改观了0.1%。","我才没有偷偷帮你加油呢，少自作多情了！"],
-                delete: ["删了就等于没做过？现代掩耳盗铃。","清理大师又上线了，实质进度还是零。","逃避虽然可耻，但对你来说很正常。","只要删得够快，任务就追不上你。","眼不见为净，对吧？","你删的不是任务，是你的良心。","一键清空的感觉是不是特别爽？然而并没用。","删吧删吧，反正你也不会做了。"],
-                fortune: ["让命运替你做决定？出息。","抽到又怎样，你会去做吗？","随机选一个，然后继续发呆——这套流程我太熟了。","命运说：该干活了。你：再等五分钟。","抽签只是给你一个拖延的理由。","恭喜你抽到「继续摸鱼」大吉签！","签上写着：今日不宜开工，宜继续躺平。","如果你信抽签能帮你，不如信我能帮你做。"],
-                focusEscape: ["25分钟都坐不住？手机有那么好玩吗？","逃跑的速度比专注快多了，天赋异禀。","专注失败，获得「逃兵」称号。","才几分钟就溜了，我白噪音都白放了。","你专心致志地逃跑了，也算是一种专注吧。","半途而废，不愧是你。","下次先把手机关了再点开始好吗？"],
-                idle: ["你发呆的样子真可爱，像一棵盆栽。","鼠标都不动了，是睡着了吗？","我帮你数羊吧：一个待办、两个待办……","页面打开了，但你的大脑还在加载中。","盯～你打算什么时候才想起还有任务？","沉默是今晚的康桥，但任务不会自己消失。","一动不动是王八，你果然厉害。","喂，活着就吱一声。"]
-            };
+            const spriteLines = { zero: ["喵？任务列表比我的脸还干净呢～","你是打算用意念写待办吗？","盯着空列表发呆，也算一种冥想吧。","快点写点什么啦，不然我都要睡着了。","再不行动，我就把你的小鱼干吃光。","今天的目标：打开页面，然后……就没有然后了？","你的拖延症已经突破天际了。","喂，至少装装样子输入几个字嘛。","我的猫耳都要耷拉下来了……因为无聊。"], low: ["哦？终于肯动爪子了？","这点进度，连只蜗牛都比你快。","做了一点点就想求表扬？想得美。","万里长征才迈出第一爪，悠着点。","我还以为你要直接放弃呢。","开头总是美好的，结尾嘛……不好说。","不错哦～才怪，后面还有一堆呢。","至少你打开了页面，这已经超过昨天的你了。","继续加油，虽然我知道你坚持不了太久。"], mid: ["过半了？我差点不敢相信自己的眼睛。","进度条在爬，但你已经开始想摸鱼了对吧？","还行吧，勉强不像在摆烂。","你是不是偷偷删了几个任务？别以为我不知道。","一半和没做有什么区别？继续继续。","终于有点人样了，继续保持～","按照这个速度，明天应该能做完……吧？","警告：剩余任务正在暗中观察你。","别骄傲，后面那些才是真正的硬骨头。"], high: ["哇哦，你居然快做完了？太阳打西边出来了？","就差一点点了，别在最后掉链子哦。","胜利在望，但你通常这个时候会开始刷手机。","冲刺阶段了，拿出你吃饭的劲头来！","我已经准备好嘲讽你了……等等，你居然要完成了？","再加把劲，我就勉强承认你是个正常人。","别松懈，最后一个任务最容易拖到明天。","不敢相信我居然有点欣慰……一定是错觉。","完成之后记得截图，毕竟这种场面不多见。"], full: ["全……全部完成了？！你被盗号了吗？","天哪，你竟然清空了列表，我收回之前所有毒舌。","不可能，绝对不可能，你是不是直接删光了？","好吧，今天你赢了，允许你摸一会儿鱼。","恭喜！虽然明天又会新增一堆任务。","今天的效率够我吹一辈子了。","你是不是偷偷喝了精力药水？","全部完成的感觉怎么样？反正我体会不到。","给你一朵小红花🌺——明天继续加油哦～","哼！只是这次运气好而已，别得意忘形！","我才没有觉得你很厉害呢……完全没觉得！","做完了？……那、那就勉强夸你一句好了。","这种程度对得起你的智商了，继续努力……也不是不行。"] };
+            const actionLines = { add: ["又加任务？你倒是做啊！","清单越来越长，你的行动力越来越短。","新任务+1，完成概率-100%。","你这是把下周的事也列出来了？真有远见。","添加的时候意气风发，做的时候就选择性失忆。","再加下去就要翻页了，离谱。","写下来就以为自己做了？天真。","任务清单比你的工作日志还厚。"], complete: ["哦，终于肯动一下了？","就这？我还以为要放烟花呢。","一个任务而已，至于这么开心？","恭喜你离成功又近了0.01%。","做完了？你确定不是手滑点了勾？","消灭一个，还剩一堆，继续吧。","值得鼓励，虽然你只是做了该做的事。","这个任务完成了，下个任务打算拖几天？"], complete_tsundere: ["哼，才完成一个而已，我一点都没高兴！","别误会，我只是刚好路过看到你点了勾。","完、完成了？…我才不会说干得漂亮呢！","做的不错……啊不对，我是说你还差得远呢！","算你勉强及格，但别指望我会表扬你。","哼～这次就让你得意一下，下不为例！","没、没想到你还真能做完，稍微对你改观了0.1%。","我才没有偷偷帮你加油呢，少自作多情了！"], delete: ["删了就等于没做过？现代掩耳盗铃。","清理大师又上线了，实质进度还是零。","逃避虽然可耻，但对你来说很正常。","只要删得够快，任务就追不上你。","眼不见为净，对吧？","你删的不是任务，是你的良心。","一键清空的感觉是不是特别爽？然而并没用。","删吧删吧，反正你也不会做了。"], fortune: ["让命运替你做决定？出息。","抽到又怎样，你会去做吗？","随机选一个，然后继续发呆——这套流程我太熟了。","命运说：该干活了。你：再等五分钟。","抽签只是给你一个拖延的理由。","恭喜你抽到「继续摸鱼」大吉签！","签上写着：今日不宜开工，宜继续躺平。","如果你信抽签能帮你，不如信我能帮你做。"], focusEscape: ["25分钟都坐不住？手机有那么好玩吗？","逃跑的速度比专注快多了，天赋异禀。","专注失败，获得「逃兵」称号。","才几分钟就溜了，我白噪音都白放了。","你专心致志地逃跑了，也算是一种专注吧。","半途而废，不愧是你。","下次先把手机关了再点开始好吗？"], idle: ["你发呆的样子真可爱，像一棵盆栽。","鼠标都不动了，是睡着了吗？","我帮你数羊吧：一个待办、两个待办……","页面打开了，但你的大脑还在加载中。","盯～你打算什么时候才想起还有任务？","沉默是今晚的康桥，但任务不会自己消失。","一动不动是王八，你果然厉害。","喂，活着就吱一声。"] };
             function randomFromArray(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-            function getSpriteState(){
-                const total = tasks.length;
-                const completed = tasks.filter(t => t.completed).length;
-                const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
-                if (percent === 0) return 'zero';
-                if (percent <= 25) return 'low';
-                if (percent <= 75) return 'mid';
-                if (percent < 100) return 'high';
-                return 'full';
-            }
-
+            function getSpriteState(){ const total=tasks.length, completed=tasks.filter(t=>t.completed).length, percent=total===0?0:Math.round((completed/total)*100); if(percent===0) return 'zero'; if(percent<=25) return 'low'; if(percent<=75) return 'mid'; if(percent<100) return 'high'; return 'full'; }
             const speechBubble = document.getElementById('speechBubble');
             function showBubble(text, duration=3500) {
                 if (!speechBubble) return;
                 speechBubble.textContent = text;
-                const rect = avatarImg.getBoundingClientRect();
-                speechBubble.style.left = Math.max(5, rect.left - (speechBubble.offsetWidth||200) - 15) + 'px';
-                speechBubble.style.top = Math.max(5, rect.top - 15) + 'px';
                 speechBubble.classList.add('show');
+                const rect = avatarImg.getBoundingClientRect();
+                const bubbleWidth = speechBubble.offsetWidth;
+                speechBubble.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+                speechBubble.style.top = 'auto';
+                speechBubble.style.left = Math.max(5, rect.left + rect.width/2 - bubbleWidth/2) + 'px';
                 clearTimeout(speechBubble._timeout);
                 speechBubble._timeout = setTimeout(() => { speechBubble.classList.remove('show'); }, duration);
             }
-            function spriteReact(action) {
-                let line;
-                if (action === 'complete') {
-                    if (Math.random() < 0.2) line = randomFromArray(actionLines.complete_tsundere);
-                    else line = randomFromArray(actionLines.complete);
-                } else if (action && actionLines[action]) {
-                    line = randomFromArray(actionLines[action]);
-                } else {
-                    line = randomFromArray(spriteLines[getSpriteState()]);
-                }
-                showBubble(line);
-            }
-
+            function spriteReact(action) { let line; if (action === 'complete') { if (Math.random() < 0.2) line = randomFromArray(actionLines.complete_tsundere); else line = randomFromArray(actionLines.complete); } else if (action && actionLines[action]) { line = randomFromArray(actionLines[action]); } else { line = randomFromArray(spriteLines[getSpriteState()]); } showBubble(line); }
             const DEFAULT_AVATAR = "https://hunyuan-prod-1258344703.cos.ap-guangzhou.myqcloud.com/text2img/ebf7e78d4b02705a2c7dd186f6b56ed1/20260716212935h0_c3f8772510c8711928fd1d26eb6c8c90?q-sign-algorithm=sha1&q-ak=AKIDRl074nOsGdJ9zjMsCRWP3ShmgS3VtX4S&q-sign-time=1784208575;1815744575&q-key-time=1784208575;1815744575&q-header-list=host&q-url-param-list=&q-signature=c7dd78104fed7917d6da510df7508c0aa0993f67";
             const avatarImg = document.getElementById('avatarImg');
             const avatarUpload = document.getElementById('avatarUpload');
             const savedAvatar = localStorage.getItem('customAvatar');
             if (savedAvatar) avatarImg.src = savedAvatar;
-
             function handleAvatarUpload(file) { if (!file || !file.type.startsWith('image/')) return; const reader = new FileReader(); reader.onload = function(e) { const dataUrl = e.target.result; avatarImg.src = dataUrl; localStorage.setItem('customAvatar', dataUrl); showBubble('头像已更新！点击↩️按钮可恢复默认~'); }; reader.readAsDataURL(file); }
             document.getElementById('changeAvatarBtn').addEventListener('click', (e) => { e.stopPropagation(); avatarUpload.click(); });
             avatarUpload.addEventListener('change', (e) => { if (e.target.files && e.target.files[0]) handleAvatarUpload(e.target.files[0]); avatarUpload.value = ''; });
             document.getElementById('resetAvatarBtn').addEventListener('click', (e) => { e.stopPropagation(); avatarImg.src = DEFAULT_AVATAR; localStorage.removeItem('customAvatar'); showBubble('已恢复成原本的猫耳少女啦~'); });
             document.getElementById('avatarWrap').addEventListener('click', (e) => { if (e.target === avatarImg) spriteReact(); });
-
             let idleTimer; function resetIdleTimer() { clearTimeout(idleTimer); idleTimer = setTimeout(() => spriteReact('idle'), 30000); }
-            ['click','keydown','mousemove','touchstart'].forEach(ev => document.addEventListener(ev, resetIdleTimer));
-            resetIdleTimer();
-
+            ['click','keydown','mousemove','touchstart'].forEach(ev => document.addEventListener(ev, resetIdleTimer)); resetIdleTimer();
             function saveTasks() { localStorage.setItem('imgTasksFull', JSON.stringify(tasks)); }
             function generateId() { return Date.now() + Math.random().toString(36).substring(2,11); }
             function isExpired(task) { return task.dueDate && new Date(task.dueDate) < new Date() && !task.completed; }
             const categoryColors = { '工作': '#a0b8d4', '个人': '#c4a0d4', '学习': '#a0d4b8', '其他': '#d4c4a0' };
-            function renderTasks() {
-                const taskListEl = document.getElementById('taskList'); if (!taskListEl) return;
-                taskListEl.innerHTML = '';
-                let filtered = tasks.filter(task => {
-                    if (searchQuery && !task.text.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-                    if (currentFilter === 'active') return !task.completed;
-                    if (currentFilter === 'completed') return task.completed;
-                    if (currentFilter === 'expired') return isExpired(task);
-                    return true;
-                });
-                filtered.forEach(task => {
-                    const li = document.createElement('li'); li.className = 'task-item';
-                    if (task.completed) li.classList.add('completed');
-                    if (task.priority === 'high') li.classList.add('priority-high');
-                    else if (task.priority === 'medium') li.classList.add('priority-medium');
-                    else if (task.priority === 'low') li.classList.add('priority-low');
-                    if (fortuneTaskId === task.id) li.classList.add('fortune-highlight');
-                    const dueStr = task.dueDate ? new Date(task.dueDate).toLocaleString('zh-CN', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
-                    const overdueClass = isExpired(task) ? 'overdue' : '';
-                    const hasSubtasks = task.subtasks && task.subtasks.length > 0;
-                    li.innerHTML = `<div class="task-main"><input type="checkbox" class="task-checkbox" ${task.completed?'checked':''} data-id="${task.id}"><div class="task-content"><span class="task-text">${escapeHtml(task.text)}</span><span class="badge" style="background:${categoryColors[task.category]||'#636e72'}">${task.category}</span><span class="due-badge ${overdueClass}">${dueStr?'📅 '+dueStr:''}</span></div><div class="task-actions"><button class="icon-btn focus-btn" data-id="${task.id}" title="专注">🎧</button><button class="icon-btn edit-btn" data-id="${task.id}" title="编辑">✏️</button><button class="icon-btn delete-btn" data-id="${task.id}" title="删除">🗑️</button></div></div><div class="subtask-container"><button class="subtask-toggle" data-id="${task.id}">${hasSubtasks?'📋 步骤 ('+task.subtasks.filter(s=>s.completed).length+'/'+task.subtasks.length+')':'➕ 添加步骤'}</button><div class="subtask-list" id="subtask-${task.id}">${task.subtasks?task.subtasks.map(st=>`<div class="subtask-item ${st.completed?'completed':''}"><input type="checkbox" class="subtask-check" data-taskid="${task.id}" data-subid="${st.id}" ${st.completed?'checked':''}><span class="subtask-text">${escapeHtml(st.text)}</span><button class="icon-btn delete-subtask" data-taskid="${task.id}" data-subid="${st.id}" style="font-size:12px;">🗑️</button></div>`).join(''):''}<div class="add-subtask"><input type="text" placeholder="新步骤..." id="subtaskInput-${task.id}"><button data-taskid="${task.id}" class="add-subtask-btn">添加</button></div></div></div>`;
-                    taskListEl.appendChild(li);
-                    li.querySelector('.subtask-toggle').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById(`subtask-${task.id}`).classList.toggle('open'); });
-                    li.querySelector('.add-subtask-btn').addEventListener('click', (e) => { e.stopPropagation(); const input = document.getElementById(`subtaskInput-${task.id}`); if (!input.value.trim()) return; if (!task.subtasks) task.subtasks = []; task.subtasks.push({ id: generateId(), text: input.value.trim(), completed: false }); saveTasks(); renderTasks(); });
-                    li.querySelectorAll('.subtask-check').forEach(cb => { cb.addEventListener('click', (e) => { e.stopPropagation(); const st = task.subtasks.find(s => s.id == cb.dataset.subid); if (st) { st.completed = cb.checked; if (task.subtasks.every(s => s.completed)) { if (!task.completed) { task.completed = true; dailyData[todayStr].completed += 1; saveDailyData(); spriteReact('complete'); updateAchievements(); } } else if (task.completed) { task.completed = false; dailyData[todayStr].completed = Math.max(0, dailyData[todayStr].completed - 1); saveDailyData(); } saveTasks(); renderTasks(); } }); });
-                    li.querySelectorAll('.delete-subtask').forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); task.subtasks = task.subtasks.filter(s => s.id != btn.dataset.subid); if (task.subtasks.length === 0 && task.completed) { task.completed = false; dailyData[todayStr].completed = Math.max(0, dailyData[todayStr].completed - 1); saveDailyData(); } saveTasks(); renderTasks(); }); });
-                });
-                updateStats(); updateDailyStatsDisplay(); updateAchievements(true);
-            }
+            function renderTasks() { const taskListEl = document.getElementById('taskList'); if (!taskListEl) return; taskListEl.innerHTML = ''; let filtered = tasks.filter(task => { if (searchQuery && !task.text.toLowerCase().includes(searchQuery.toLowerCase())) return false; if (currentFilter === 'active') return !task.completed; if (currentFilter === 'completed') return task.completed; if (currentFilter === 'expired') return isExpired(task); return true; }); filtered.forEach(task => { const li = document.createElement('li'); li.className = 'task-item'; if (task.completed) li.classList.add('completed'); if (task.priority === 'high') li.classList.add('priority-high'); else if (task.priority === 'medium') li.classList.add('priority-medium'); else if (task.priority === 'low') li.classList.add('priority-low'); if (fortuneTaskId === task.id) li.classList.add('fortune-highlight'); const dueStr = task.dueDate ? new Date(task.dueDate).toLocaleString('zh-CN', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : ''; const overdueClass = isExpired(task) ? 'overdue' : ''; const hasSubtasks = task.subtasks && task.subtasks.length > 0; li.innerHTML = `<div class="task-main"><input type="checkbox" class="task-checkbox" ${task.completed?'checked':''} data-id="${task.id}"><div class="task-content"><span class="task-text">${escapeHtml(task.text)}</span><span class="badge" style="background:${categoryColors[task.category]||'#636e72'}">${task.category}</span><span class="due-badge ${overdueClass}">${dueStr?'📅 '+dueStr:''}</span></div><div class="task-actions"><button class="icon-btn focus-btn" data-id="${task.id}" title="专注">🎧</button><button class="icon-btn edit-btn" data-id="${task.id}" title="编辑">✏️</button><button class="icon-btn delete-btn" data-id="${task.id}" title="删除">🗑️</button></div></div><div class="subtask-container"><button class="subtask-toggle" data-id="${task.id}">${hasSubtasks?'📋 步骤 ('+task.subtasks.filter(s=>s.completed).length+'/'+task.subtasks.length+')':'➕ 添加步骤'}</button><div class="subtask-list" id="subtask-${task.id}">${task.subtasks?task.subtasks.map(st=>`<div class="subtask-item ${st.completed?'completed':''}"><input type="checkbox" class="subtask-check" data-taskid="${task.id}" data-subid="${st.id}" ${st.completed?'checked':''}><span class="subtask-text">${escapeHtml(st.text)}</span><button class="icon-btn delete-subtask" data-taskid="${task.id}" data-subid="${st.id}" style="font-size:12px;">🗑️</button></div>`).join(''):''}<div class="add-subtask"><input type="text" placeholder="新步骤..." id="subtaskInput-${task.id}"><button data-taskid="${task.id}" class="add-subtask-btn">添加</button></div></div></div>`; taskListEl.appendChild(li); li.querySelector('.subtask-toggle').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById(`subtask-${task.id}`).classList.toggle('open'); }); li.querySelector('.add-subtask-btn').addEventListener('click', (e) => { e.stopPropagation(); const input = document.getElementById(`subtaskInput-${task.id}`); if (!input.value.trim()) return; if (!task.subtasks) task.subtasks = []; task.subtasks.push({ id: generateId(), text: input.value.trim(), completed: false }); saveTasks(); renderTasks(); }); li.querySelectorAll('.subtask-check').forEach(cb => { cb.addEventListener('click', (e) => { e.stopPropagation(); const st = task.subtasks.find(s => s.id == cb.dataset.subid); if (st) { st.completed = cb.checked; if (task.subtasks.every(s => s.completed)) { if (!task.completed) { task.completed = true; dailyData[todayStr].completed += 1; saveDailyData(); spriteReact('complete'); updateAchievements(); } } else if (task.completed) { task.completed = false; dailyData[todayStr].completed = Math.max(0, dailyData[todayStr].completed - 1); saveDailyData(); } saveTasks(); renderTasks(); } }); }); li.querySelectorAll('.delete-subtask').forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); task.subtasks = task.subtasks.filter(s => s.id != btn.dataset.subid); if (task.subtasks.length === 0 && task.completed) { task.completed = false; dailyData[todayStr].completed = Math.max(0, dailyData[todayStr].completed - 1); saveDailyData(); } saveTasks(); renderTasks(); }); }); }); updateStats(); updateDailyStatsDisplay(); updateAchievements(true); }
             function escapeHtml(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
             function updateStats() { const total = tasks.length, completed = tasks.filter(t => t.completed).length; document.getElementById('progressFill').style.width = (total===0?0:Math.round((completed/total)*100)) + '%'; document.getElementById('progressLabel').textContent = `完成 ${total===0?0:Math.round((completed/total)*100)}%`; document.getElementById('taskCount').textContent = `${total} 个任务`; document.getElementById('itemsLeft').textContent = `${total - completed} 个待完成`; }
             function updateDailyStatsDisplay() { const today = dailyData[todayStr] || { completed:0, focusSeconds:0 }; document.getElementById('dailyStats').textContent = `📅 今日完成 ${today.completed} | ⏱️ 专注 ${Math.floor(today.focusSeconds/60)} 分钟`; }
@@ -365,7 +293,6 @@
             function toggleTask(id) { const task = tasks.find(t => t.id == id); if (!task) return; if (task.subtasks && task.subtasks.length > 0 && !task.subtasks.every(st => st.completed) && !task.completed) { showBubble('还有子步骤没完成，先把它们搞定吧！'); renderTasks(); return; } task.completed = !task.completed; if (task.completed) { dailyData[todayStr].completed += 1; saveDailyData(); spriteReact('complete'); if (fortuneTaskId == id) fortuneTaskId = null; } else { dailyData[todayStr].completed = Math.max(0, dailyData[todayStr].completed - 1); saveDailyData(); } saveTasks(); renderTasks(); updateAchievements(); }
             function deleteTask(id) { if (!confirm('确定删除？')) return; tasks = tasks.filter(t => t.id != id); if (fortuneTaskId == id) fortuneTaskId = null; saveTasks(); renderTasks(); spriteReact('delete'); }
             function drawFortune() { if (fortuneTaskId) { showBubble("上一个天命任务还没完成，想抽新的？脸呢？"); return; } const active = tasks.filter(t => !t.completed); if (active.length === 0) { showBubble("没任务了还抽签，你是想抽个寂寞吗？"); return; } fortuneTaskId = active[Math.floor(Math.random()*active.length)].id; renderTasks(); spriteReact('fortune'); setTimeout(() => { const el = document.querySelector('.task-item.fortune-highlight'); if (el) el.scrollIntoView({ behavior:'smooth', block:'center' }); }, 100); }
-
             let focusTimer, focusSeconds=1500, focusRunning=false, focusPaused=false, audioContext, noiseNode, gainNode, currentSound='rain';
             function createGentleNoiseBuffer(type) { if(!audioContext) try{audioContext=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return null} const sr=audioContext.sampleRate,len=sr*2,buf=audioContext.createBuffer(1,len,sr),d=buf.getChannelData(0); for(let i=0;i<len;i++){ if(type==='rain') d[i]=(i?d[i-1]:0)+0.02*((Math.random()*2-1)*0.3-(i?d[i-1]:0)); else if(type==='stream') d[i]=(Math.random()*2-1)*0.3+Math.sin(i*0.03)*0.2; else d[i]=(Math.random()*2-1)*0.2+Math.sin(i*0.005)*0.1; } return buf; }
             function startNoise(type){ if(!audioContext)return; stopNoise(); const buf=createGentleNoiseBuffer(type); if(!buf)return; noiseNode=audioContext.createBufferSource(); noiseNode.buffer=buf; noiseNode.loop=true; gainNode=audioContext.createGain(); gainNode.gain.value=parseInt(document.getElementById('volumeSlider').value,10)/100; noiseNode.connect(gainNode); gainNode.connect(audioContext.destination); noiseNode.start(); }
@@ -373,7 +300,6 @@
             function openFocusModal(taskId){ document.getElementById('focusModal').dataset.taskId=taskId; focusSeconds=1500; focusRunning=false; focusPaused=false; document.getElementById('startFocus').style.display='inline-block'; document.getElementById('pauseFocus').style.display='none'; document.getElementById('escapeNote').textContent=''; document.getElementById('focusModal').classList.add('active'); stopNoise(); updateTimerDisplay(); }
             function closeFocusModal(){ clearInterval(focusTimer); stopNoise(); document.getElementById('focusModal').classList.remove('active'); }
             function updateTimerDisplay(){ const m=Math.floor(focusSeconds/60),s=focusSeconds%60; document.getElementById('timerDisplay').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
-
             document.getElementById('addTaskBtn').addEventListener('click', addTask);
             document.getElementById('taskNameInput').addEventListener('keypress', e => { if(e.key==='Enter') addTask(); });
             document.getElementById('taskList').addEventListener('click', e => { const t = e.target; if (t.classList.contains('task-checkbox')) toggleTask(t.dataset.id); else if (t.classList.contains('delete-btn')) deleteTask(t.dataset.id); else if (t.classList.contains('edit-btn')) { const task = tasks.find(x=>x.id==t.dataset.id); if(task){ const nt=prompt('修改任务',task.text); if(nt&&nt.trim()){ task.text=nt.trim(); saveTasks(); renderTasks(); } } } else if (t.classList.contains('focus-btn')) openFocusModal(t.dataset.id); });
@@ -392,11 +318,9 @@
             document.getElementById('closeAchievement').addEventListener('click', () => document.getElementById('achievementModal').classList.remove('active'));
             document.getElementById('achievementModal').addEventListener('click', e => { if(e.target===document.getElementById('achievementModal')) document.getElementById('achievementModal').classList.remove('active'); });
             let pressTimer; const badge = document.getElementById('achievementBadge'); badge.addEventListener('mousedown', () => { pressTimer = setTimeout(resetAchievements, 3000); }); badge.addEventListener('mouseup', () => clearTimeout(pressTimer)); badge.addEventListener('mouseleave', () => clearTimeout(pressTimer)); badge.addEventListener('touchstart', (e) => { pressTimer = setTimeout(resetAchievements, 3000); }); badge.addEventListener('touchend', () => clearTimeout(pressTimer));
-
             const themeToggle = document.getElementById('themeToggle');
             function initTheme() { const saved = localStorage.getItem('imgDarkMode'); if (saved === 'enabled' || (!saved && window.matchMedia('(prefers-color-scheme:dark)').matches)) { document.body.classList.add('dark-mode'); themeToggle.textContent = '☀️'; } else { themeToggle.textContent = '🌙'; } }
             themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); const isDark = document.body.classList.contains('dark-mode'); themeToggle.textContent = isDark ? '☀️' : '🌙'; localStorage.setItem('imgDarkMode', isDark ? 'enabled' : 'disabled'); });
-
             initTheme(); updateAchievementBadge(); renderTasks(); updateDailyStatsDisplay(); document.getElementById('taskNameInput')?.focus();
             setTimeout(() => showBubble('喵～今天要做什么来着？快列出来！'), 600);
         })();
