@@ -2,8 +2,13 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>今天有什么要做的来着？</title>
+    <!-- ===== PWA 必需：manifest 链接 ===== -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#d4a08c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <style>
         :root {
             --bg: #faf6f2;
@@ -56,81 +61,19 @@
             overflow: visible;
         }
 
-        /* 精灵头像 */
-        .sprite-area {
-            position: absolute;
-            top: 18px;
-            right: 16px;
-            z-index: 10;
-            user-select: none;
-            width: 90px;
-            height: 90px;
-        }
-        .avatar-wrap {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            animation: float 3s infinite ease-in-out;
-            transition: transform 0.3s;
-            cursor: pointer;
-            position: relative;
-        }
+        .sprite-area { position: absolute; top: 18px; right: 16px; z-index: 10; user-select: none; width: 90px; height: 90px; }
+        .avatar-wrap { width: 100%; height: 100%; border-radius: 50%; animation: float 3s infinite ease-in-out; transition: transform 0.3s; cursor: pointer; position: relative; }
         .avatar-wrap:hover { animation: bounce 0.5s ease; }
-        .avatar-img {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.15);
-            border: 2px solid var(--primary);
-            transition: transform 0.3s;
-        }
+        .avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; box-shadow: 0 6px 15px rgba(0,0,0,0.15); border: 2px solid var(--primary); transition: transform 0.3s; }
         .avatar-wrap:active .avatar-img { transform: scale(0.92); }
-        .change-avatar-btn {
-            position: absolute;
-            bottom: -2px; right: -2px;
-            width: 28px; height: 28px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 14px;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-            z-index: 11;
-            transition: transform 0.2s;
-        }
+        .change-avatar-btn { position: absolute; bottom: -2px; right: -2px; width: 28px; height: 28px; background: var(--primary); color: white; border: none; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 11; transition: transform 0.2s; }
         .change-avatar-btn:hover { transform: scale(1.15); }
-        .reset-avatar-btn {
-            position: absolute;
-            bottom: -2px; left: -2px;
-            width: 28px; height: 28px;
-            background: var(--danger);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 14px;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-            z-index: 11;
-            transition: transform 0.2s;
-        }
+        .reset-avatar-btn { position: absolute; bottom: -2px; left: -2px; width: 28px; height: 28px; background: var(--danger); color: white; border: none; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 11; transition: transform 0.2s; }
         .reset-avatar-btn:hover { transform: scale(1.15); }
         #avatarUpload { display: none; }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-4px); }
-        }
-        @keyframes bounce {
-            0% { transform: scale(1); }
-            30% { transform: scale(1.1); }
-            50% { transform: scale(0.95); }
-            100% { transform: scale(1); }
-        }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+        @keyframes bounce { 0% { transform: scale(1); } 30% { transform: scale(1.1); } 50% { transform: scale(0.95); } 100% { transform: scale(1); } }
 
-        /* 气泡（智能定位，不会超出屏幕） */
         .speech-bubble {
             position: fixed;
             background: var(--card-bg);
@@ -149,291 +92,82 @@
         }
         .speech-bubble.show { opacity: 1; visibility: visible; }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            padding-right: 120px;
-        }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-right: 120px; }
         h1 { font-size: 1.8rem; font-weight: 600; }
-        .theme-btn {
-            background: none;
-            border: 1px solid var(--border);
-            border-radius: 50%;
-            width: 38px; height: 38px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .daily-stats {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            padding-right: 100px;
-        }
-        .achievement-badge {
-            background: #e6c7b8;
-            color: white;
-            border-radius: 20px;
-            padding: 2px 10px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            user-select: none;
-            position: relative;
-            z-index: 20;
-        }
+        .theme-btn { background: none; border: 1px solid var(--border); border-radius: 50%; width: 38px; height: 38px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .daily-stats { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.85rem; color: var(--text-secondary); padding-right: 100px; }
+        .achievement-badge { background: #e6c7b8; color: white; border-radius: 20px; padding: 2px 10px; font-size: 0.8rem; cursor: pointer; user-select: none; position: relative; z-index: 20; }
         .progress-wrap { margin-bottom: 15px; }
-        .progress-text {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-bottom: 4px;
-        }
-        .progress-bar {
-            height: 8px;
-            background: var(--border);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: var(--success);
-            transition: width 0.5s;
-        }
+        .progress-text { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; }
+        .progress-bar { height: 8px; background: var(--border); border-radius: 8px; overflow: hidden; }
+        .progress-fill { height: 100%; width: 0%; background: var(--success); transition: width 0.5s; }
         .search-add-row { display: flex; gap: 10px; margin-bottom: 15px; }
-        .search-input {
-            flex: 1;
-            padding: 10px 16px;
-            border: 2px solid var(--border);
-            border-radius: 20px;
-            background: var(--input-bg);
-            color: var(--text);
-            outline: none;
-            font-size: 14px;
-        }
-        .add-task-form {
-            display: flex; flex-wrap: wrap; gap: 8px;
-            background: var(--task-bg);
-            padding: 14px; border-radius: 18px; margin-bottom: 18px;
-        }
-        .add-task-form input, .add-task-form select {
-            padding: 9px 12px;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            background: var(--input-bg);
-            color: var(--text);
-            font-size: 14px;
-            outline: none;
-        }
+        .search-input { flex: 1; padding: 10px 16px; border: 2px solid var(--border); border-radius: 20px; background: var(--input-bg); color: var(--text); outline: none; font-size: 14px; }
+        .add-task-form { display: flex; flex-wrap: wrap; gap: 8px; background: var(--task-bg); padding: 14px; border-radius: 18px; margin-bottom: 18px; }
+        .add-task-form input, .add-task-form select { padding: 9px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--input-bg); color: var(--text); font-size: 14px; outline: none; }
         .task-name-input { flex: 2; min-width: 130px; }
-        .category-select { flex: 1; }
-        .priority-select { flex: 0.8; }
-        .due-date-input { flex: 1.3; }
-        .add-btn {
-            padding: 10px 18px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        .filter-group {
-            display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
-        }
-        .filter-btn {
-            padding: 5px 14px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            background: transparent;
-            color: var(--text);
-            cursor: pointer;
-            font-size: 13px;
-        }
-        .filter-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-        .task-list {
-            list-style: none;
-            max-height: 420px;
-            overflow-y: auto;
-            margin-bottom: 15px;
-            -webkit-overflow-scrolling: touch;
-        }
-        .task-item {
-            display: flex; flex-direction: column;
-            background: var(--task-bg);
-            border-radius: 14px;
-            margin-bottom: 8px;
-            border-left: 4px solid transparent;
-            transition: all 0.3s;
-        }
+        .category-select { flex: 1; } .priority-select { flex: 0.8; } .due-date-input { flex: 1.3; }
+        .add-btn { padding: 10px 18px; background: var(--primary); color: white; border: none; border-radius: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .filter-group { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+        .filter-btn { padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; font-size: 13px; }
+        .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .task-list { list-style: none; max-height: 420px; overflow-y: auto; margin-bottom: 15px; -webkit-overflow-scrolling: touch; }
+        .task-item { display: flex; flex-direction: column; background: var(--task-bg); border-radius: 14px; margin-bottom: 8px; border-left: 4px solid transparent; transition: all 0.3s; }
         .task-item.completed { opacity: 0.7; }
-        .task-main {
-            display: flex; align-items: center; gap: 8px;
-            padding: 10px 12px;
-        }
+        .task-main { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
         .task-item.completed .task-text { text-decoration: line-through; }
-        .priority-high { border-left-color: #c06b6b; }
-        .priority-medium { border-left-color: #e0a56f; }
-        .priority-low { border-left-color: #9b9b9b; }
-        .task-checkbox {
-            width: 19px; height: 19px;
-            accent-color: var(--primary);
-            cursor: pointer;
-        }
-        .task-content {
-            flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 5px;
-        }
+        .priority-high { border-left-color: #c06b6b; } .priority-medium { border-left-color: #e0a56f; } .priority-low { border-left-color: #9b9b9b; }
+        .task-checkbox { width: 19px; height: 19px; accent-color: var(--primary); cursor: pointer; }
+        .task-content { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
         .task-text { word-break: break-word; font-size: 14px; }
-        .badge {
-            font-size: 10px; padding: 2px 8px; border-radius: 12px;
-            color: white; font-weight: 600;
-        }
-        .due-badge { font-size: 10px; color: var(--text-secondary); }
-        .due-badge.overdue { color: var(--danger); font-weight: bold; }
+        .badge { font-size: 10px; padding: 2px 8px; border-radius: 12px; color: white; font-weight: 600; }
+        .due-badge { font-size: 10px; color: var(--text-secondary); } .due-badge.overdue { color: var(--danger); font-weight: bold; }
         .task-actions { display: flex; gap: 4px; }
-        .icon-btn {
-            background: none; border: none; font-size: 16px; cursor: pointer;
-            padding: 3px 6px; border-radius: 8px; color: var(--text-secondary);
-        }
+        .icon-btn { background: none; border: none; font-size: 16px; cursor: pointer; padding: 3px 6px; border-radius: 8px; color: var(--text-secondary); }
         .icon-btn:hover { background: rgba(0,0,0,0.06); }
         .focus-btn { color: #5c6bc0; }
         .delete-btn:hover { color: var(--danger); }
         .subtask-container { padding: 0 12px 8px; }
-        .subtask-toggle {
-            font-size: 12px; color: var(--text-secondary);
-            background: none; border: none; cursor: pointer;
-        }
-        .subtask-list {
-            padding: 5px 0 5px 20px;
-            display: none;
-            flex-direction: column;
-            gap: 6px;
-        }
+        .subtask-toggle { font-size: 12px; color: var(--text-secondary); background: none; border: none; cursor: pointer; }
+        .subtask-list { padding: 5px 0 5px 20px; display: none; flex-direction: column; gap: 6px; }
         .subtask-list.open { display: flex; }
-        .subtask-item {
-            display: flex; align-items: center; gap: 8px;
-            font-size: 13px;
-        }
-        .subtask-item input[type="checkbox"] {
-            width: 16px; height: 16px; accent-color: var(--primary);
-        }
-        .subtask-item.completed .subtask-text {
-            text-decoration: line-through; opacity: 0.7;
-        }
+        .subtask-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+        .subtask-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); }
+        .subtask-item.completed .subtask-text { text-decoration: line-through; opacity: 0.7; }
         .add-subtask { display: flex; gap: 5px; margin-top: 6px; }
-        .add-subtask input {
-            flex: 1;
-            padding: 5px 10px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background: var(--input-bg);
-            color: var(--text);
-            font-size: 12px;
-        }
-        .add-subtask button {
-            padding: 4px 10px;
-            border: none;
-            background: var(--primary);
-            color: white;
-            border-radius: 8px;
-            font-size: 12px;
-            cursor: pointer;
-        }
-        .bottom-bar {
-            display: flex; justify-content: space-between; align-items: center;
-            flex-wrap: wrap; gap: 10px; font-size: 13px; color: var(--text-secondary);
-        }
-        .clear-btn {
-            background: none; border: 1px solid var(--danger); color: var(--danger);
-            padding: 4px 12px; border-radius: 14px; cursor: pointer; font-size: 12px;
-        }
-        .fortune-btn {
-            background: none; border: 1px solid #b68ac4; color: #b68ac4;
-            padding: 6px 16px; border-radius: 20px; cursor: pointer;
-            font-weight: 600; font-size: 14px; transition: 0.3s;
-        }
+        .add-subtask input { flex: 1; padding: 5px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--input-bg); color: var(--text); font-size: 12px; }
+        .add-subtask button { padding: 4px 10px; border: none; background: var(--primary); color: white; border-radius: 8px; font-size: 12px; cursor: pointer; }
+        .bottom-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 13px; color: var(--text-secondary); }
+        .clear-btn { background: none; border: 1px solid var(--danger); color: var(--danger); padding: 4px 12px; border-radius: 14px; cursor: pointer; font-size: 12px; }
+        .fortune-btn { background: none; border: 1px solid #b68ac4; color: #b68ac4; padding: 6px 16px; border-radius: 20px; cursor: pointer; font-weight: 600; font-size: 14px; transition: 0.3s; }
         .fortune-btn:hover { background: #b68ac4; color: white; }
-        .fortune-highlight {
-            animation: fortunePulse 1s infinite alternate;
-            border: 2px solid #b68ac4 !important;
-            background: #f3e5f5 !important;
-        }
-        @keyframes fortunePulse {
-            from { box-shadow: 0 0 5px #b68ac4; }
-            to { box-shadow: 0 0 18px #b68ac4; }
-        }
-        .modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); justify-content: center; align-items: center;
-            z-index: 1000;
-        }
+        .fortune-highlight { animation: fortunePulse 1s infinite alternate; border: 2px solid #b68ac4 !important; background: #f3e5f5 !important; }
+        @keyframes fortunePulse { from { box-shadow: 0 0 5px #b68ac4; } to { box-shadow: 0 0 18px #b68ac4; } }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
         .modal.active { display: flex; }
-        .focus-modal {
-            background: var(--card-bg);
-            border-radius: 28px;
-            padding: 30px;
-            text-align: center;
-            width: 90%;
-            max-width: 380px;
-        }
+        .focus-modal { background: var(--card-bg); border-radius: 28px; padding: 30px; text-align: center; width: 90%; max-width: 380px; }
         .timer-display { font-size: 4rem; font-weight: 300; margin: 20px 0; }
-        .sound-btn {
-            padding: 6px 14px; margin: 3px;
-            border: 1px solid var(--border); background: transparent;
-            border-radius: 20px; cursor: pointer; color: var(--text);
-        }
+        .sound-btn { padding: 6px 14px; margin: 3px; border: 1px solid var(--border); background: transparent; border-radius: 20px; cursor: pointer; color: var(--text); }
         .sound-btn.active { background: var(--primary); color: white; }
-        .volume-control {
-            margin: 15px 0 5px;
-            display: flex; align-items: center; justify-content: center;
-            gap: 10px; color: var(--text-secondary);
-        }
+        .volume-control { margin: 15px 0 5px; display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--text-secondary); }
         .volume-slider { width: 120px; accent-color: var(--primary); }
-        .focus-actions button {
-            padding: 8px 20px; margin: 5px;
-            border: none; border-radius: 14px; cursor: pointer; font-weight: 600;
-        }
-        .btn-start { background: var(--success); color: white; }
-        .btn-pause { background: #e0a56f; color: white; }
-        .btn-stop { background: var(--danger); color: white; }
+        .focus-actions button { padding: 8px 20px; margin: 5px; border: none; border-radius: 14px; cursor: pointer; font-weight: 600; }
+        .btn-start { background: var(--success); color: white; } .btn-pause { background: #e0a56f; color: white; } .btn-stop { background: var(--danger); color: white; }
         .escape-note { font-size: 12px; margin-top: 10px; color: var(--text-secondary); }
-        .achievement-list {
-            text-align: left; max-height: 200px; overflow-y: auto;
-            margin: 10px 0; font-size: 13px;
-        }
-        .achievement-item {
-            padding: 5px 0; border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between;
-        }
+        .achievement-list { text-align: left; max-height: 200px; overflow-y: auto; margin: 10px 0; font-size: 13px; }
+        .achievement-item { padding: 5px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
         .achievement-item.locked { opacity: 0.5; }
 
-        /* ===== 手机端适配 ===== */
         @media (max-width: 600px) {
             body { padding: 10px; }
             .container { padding: 16px; border-radius: 24px; }
-            .sprite-area {
-                width: 70px; height: 70px;
-                top: 10px; right: 10px;
-            }
+            .sprite-area { width: 70px; height: 70px; top: 10px; right: 10px; }
             .header { padding-right: 85px; }
             h1 { font-size: 1.4rem; }
             .daily-stats { font-size: 0.75rem; padding-right: 0; }
             .progress-text { font-size: 0.75rem; }
             .speech-bubble { max-width: 200px; font-size: 12px; padding: 8px 12px; }
-            .add-task-form input, .add-task-form select {
-                padding: 7px 8px; font-size: 12px;
-            }
+            .add-task-form input, .add-task-form select { padding: 7px 8px; font-size: 12px; }
             .task-name-input { min-width: 100px; }
             .add-btn { padding: 8px 14px; font-size: 13px; }
             .task-text { font-size: 13px; }
@@ -446,11 +180,9 @@
 </head>
 <body>
     <div class="container">
-        <!-- 精灵（使用本地图片，失败时自动切换备选Base64） -->
         <div class="sprite-area" id="spriteArea">
             <div class="avatar-wrap" id="avatarWrap">
-                <img class="avatar-img" id="avatarImg" src="catgirl.png" alt="猫耳少女"
-                     onerror="this.onerror=null; this.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAdklEQVRoQ+2YMQrAIAwE8/8/6kd0cBMVtFBiqxUOlrPYW1gBmIlvPM0AWi+n2rV7HgF3BNBbG7UxAoKghhJQIlFPQBQjEAXRn4CXIucIgEWIIkDmSNJF4CWhnSNA6e2zBQBZgFrgTQAAAABJRU5ErkJggg==';">
+                <img class="avatar-img" id="avatarImg" src="catgirl.png" alt="猫耳少女" onerror="this.onerror=null; this.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAdklEQVRoQ+2YMQrAIAwE8/8/6kd0cBMVtFBiqxUOlrPYW1gBmIlvPM0AWi+n2rV7HgF3BNBbG7UxAoKghhJQIlFPQBQjEAXRn4CXIucIgEWIIkDmSNJF4CWhnSNA6e2zBQBZgFrgTQAAAABJRU5ErkJggg==';">
                 <button class="change-avatar-btn" id="changeAvatarBtn" title="上传头像">✏️</button>
                 <button class="reset-avatar-btn" id="resetAvatarBtn" title="恢复默认头像">↩️</button>
             </div>
@@ -494,7 +226,6 @@
             </div>
         </div>
     </div>
-    <!-- 专注弹窗 -->
     <div class="modal" id="focusModal">
         <div class="focus-modal">
             <h3>🎧 专注空间</h3>
@@ -513,7 +244,6 @@
             <div class="escape-note" id="escapeNote"></div>
         </div>
     </div>
-    <!-- 成就弹窗 -->
     <div class="modal" id="achievementModal">
         <div class="focus-modal" style="max-width:340px;">
             <h3>🏆 成就</h3>
@@ -524,7 +254,6 @@
 
     <script>
         (function() {
-            // ========== 数据加载 ==========
             let tasks = [];
             try { const stored = localStorage.getItem('imgTasksFull'); if (stored) tasks = JSON.parse(stored); if (!Array.isArray(tasks)) tasks = []; } catch (e) { tasks = []; }
             let dailyData = {};
@@ -546,45 +275,23 @@
             function resetAchievements() { if(confirm('确定重置所有成就吗？')){ achievements={}; localStorage.setItem('imgAchievements',JSON.stringify(achievements)); updateAchievementBadge(); showBubble('成就已重置，重新证明自己吧！',3000); } }
             function saveDailyData() { localStorage.setItem('imgDailyData',JSON.stringify(dailyData)); }
             let currentFilter='all', searchQuery='', fortuneTaskId=null;
-
-            // ========== 猫耳少女毒舌 + 傲娇词库 ==========
-            const spriteLines = {
-                zero: ["喵？任务列表比我的脸还干净呢～","你是打算用意念写待办吗？","盯着空列表发呆，也算一种冥想吧。","快点写点什么啦，不然我都要睡着了。","再不行动，我就把你的小鱼干吃光。","今天的目标：打开页面，然后……就没有然后了？","你的拖延症已经突破天际了。","喂，至少装装样子输入几个字嘛。","我的猫耳都要耷拉下来了……因为无聊。"],
-                low: ["哦？终于肯动爪子了？","这点进度，连只蜗牛都比你快。","做了一点点就想求表扬？想得美。","万里长征才迈出第一爪，悠着点。","我还以为你要直接放弃呢。","开头总是美好的，结尾嘛……不好说。","不错哦～才怪，后面还有一堆呢。","至少你打开了页面，这已经超过昨天的你了。","继续加油，虽然我知道你坚持不了太久。"],
-                mid: ["过半了？我差点不敢相信自己的眼睛。","进度条在爬，但你已经开始想摸鱼了对吧？","还行吧，勉强不像在摆烂。","你是不是偷偷删了几个任务？别以为我不知道。","一半和没做有什么区别？继续继续。","终于有点人样了，继续保持～","按照这个速度，明天应该能做完……吧？","警告：剩余任务正在暗中观察你。","别骄傲，后面那些才是真正的硬骨头。"],
-                high: ["哇哦，你居然快做完了？太阳打西边出来了？","就差一点点了，别在最后掉链子哦。","胜利在望，但你通常这个时候会开始刷手机。","冲刺阶段了，拿出你吃饭的劲头来！","我已经准备好嘲讽你了……等等，你居然要完成了？","再加把劲，我就勉强承认你是个正常人。","别松懈，最后一个任务最容易拖到明天。","不敢相信我居然有点欣慰……一定是错觉。","完成之后记得截图，毕竟这种场面不多见。"],
-                full: ["全……全部完成了？！你被盗号了吗？","天哪，你竟然清空了列表，我收回之前所有毒舌。","不可能，绝对不可能，你是不是直接删光了？","好吧，今天你赢了，允许你摸一会儿鱼。","恭喜！虽然明天又会新增一堆任务。","今天的效率够我吹一辈子了。","你是不是偷偷喝了精力药水？","全部完成的感觉怎么样？反正我体会不到。","给你一朵小红花🌺——明天继续加油哦～","哼！只是这次运气好而已，别得意忘形！","我才没有觉得你很厉害呢……完全没觉得！","做完了？……那、那就勉强夸你一句好了。","这种程度对得起你的智商了，继续努力……也不是不行。"]
-            };
-            const actionLines = {
-                add: ["又加任务？你倒是做啊！","清单越来越长，你的行动力越来越短。","新任务+1，完成概率-100%。","你这是把下周的事也列出来了？真有远见。","添加的时候意气风发，做的时候就选择性失忆。","再加下去就要翻页了，离谱。","写下来就以为自己做了？天真。","任务清单比你的工作日志还厚。"],
-                complete: ["哦，终于肯动一下了？","就这？我还以为要放烟花呢。","一个任务而已，至于这么开心？","恭喜你离成功又近了0.01%。","做完了？你确定不是手滑点了勾？","消灭一个，还剩一堆，继续吧。","值得鼓励，虽然你只是做了该做的事。","这个任务完成了，下个任务打算拖几天？"],
-                complete_tsundere: ["哼，才完成一个而已，我一点都没高兴！","别误会，我只是刚好路过看到你点了勾。","完、完成了？…我才不会说干得漂亮呢！","做的不错……啊不对，我是说你还差得远呢！","算你勉强及格，但别指望我会表扬你。","哼～这次就让你得意一下，下不为例！","没、没想到你还真能做完，稍微对你改观了0.1%。","我才没有偷偷帮你加油呢，少自作多情了！"],
-                delete: ["删了就等于没做过？现代掩耳盗铃。","清理大师又上线了，实质进度还是零。","逃避虽然可耻，但对你来说很正常。","只要删得够快，任务就追不上你。","眼不见为净，对吧？","你删的不是任务，是你的良心。","一键清空的感觉是不是特别爽？然而并没用。","删吧删吧，反正你也不会做了。"],
-                fortune: ["让命运替你做决定？出息。","抽到又怎样，你会去做吗？","随机选一个，然后继续发呆——这套流程我太熟了。","命运说：该干活了。你：再等五分钟。","抽签只是给你一个拖延的理由。","恭喜你抽到「继续摸鱼」大吉签！","签上写着：今日不宜开工，宜继续躺平。","如果你信抽签能帮你，不如信我能帮你做。"],
-                focusEscape: ["25分钟都坐不住？手机有那么好玩吗？","逃跑的速度比专注快多了，天赋异禀。","专注失败，获得「逃兵」称号。","才几分钟就溜了，我白噪音都白放了。","你专心致志地逃跑了，也算是一种专注吧。","半途而废，不愧是你。","下次先把手机关了再点开始好吗？"],
-                idle: ["你发呆的样子真可爱，像一棵盆栽。","鼠标都不动了，是睡着了吗？","我帮你数羊吧：一个待办、两个待办……","页面打开了，但你的大脑还在加载中。","盯～你打算什么时候才想起还有任务？","沉默是今晚的康桥，但任务不会自己消失。","一动不动是王八，你果然厉害。","喂，活着就吱一声。"]
-            };
+            const spriteLines = { zero: ["喵？任务列表比我的脸还干净呢～","你是打算用意念写待办吗？","盯着空列表发呆，也算一种冥想吧。","快点写点什么啦，不然我都要睡着了。","再不行动，我就把你的小鱼干吃光。","今天的目标：打开页面，然后……就没有然后了？","你的拖延症已经突破天际了。","喂，至少装装样子输入几个字嘛。","我的猫耳都要耷拉下来了……因为无聊。"], low: ["哦？终于肯动爪子了？","这点进度，连只蜗牛都比你快。","做了一点点就想求表扬？想得美。","万里长征才迈出第一爪，悠着点。","我还以为你要直接放弃呢。","开头总是美好的，结尾嘛……不好说。","不错哦～才怪，后面还有一堆呢。","至少你打开了页面，这已经超过昨天的你了。","继续加油，虽然我知道你坚持不了太久。"], mid: ["过半了？我差点不敢相信自己的眼睛。","进度条在爬，但你已经开始想摸鱼了对吧？","还行吧，勉强不像在摆烂。","你是不是偷偷删了几个任务？别以为我不知道。","一半和没做有什么区别？继续继续。","终于有点人样了，继续保持～","按照这个速度，明天应该能做完……吧？","警告：剩余任务正在暗中观察你。","别骄傲，后面那些才是真正的硬骨头。"], high: ["哇哦，你居然快做完了？太阳打西边出来了？","就差一点点了，别在最后掉链子哦。","胜利在望，但你通常这个时候会开始刷手机。","冲刺阶段了，拿出你吃饭的劲头来！","我已经准备好嘲讽你了……等等，你居然要完成了？","再加把劲，我就勉强承认你是个正常人。","别松懈，最后一个任务最容易拖到明天。","不敢相信我居然有点欣慰……一定是错觉。","完成之后记得截图，毕竟这种场面不多见。"], full: ["全……全部完成了？！你被盗号了吗？","天哪，你竟然清空了列表，我收回之前所有毒舌。","不可能，绝对不可能，你是不是直接删光了？","好吧，今天你赢了，允许你摸一会儿鱼。","恭喜！虽然明天又会新增一堆任务。","今天的效率够我吹一辈子了。","你是不是偷偷喝了精力药水？","全部完成的感觉怎么样？反正我体会不到。","给你一朵小红花🌺——明天继续加油哦～","哼！只是这次运气好而已，别得意忘形！","我才没有觉得你很厉害呢……完全没觉得！","做完了？……那、那就勉强夸你一句好了。","这种程度对得起你的智商了，继续努力……也不是不行。"] };
+            const actionLines = { add: ["又加任务？你倒是做啊！","清单越来越长，你的行动力越来越短。","新任务+1，完成概率-100%。","你这是把下周的事也列出来了？真有远见。","添加的时候意气风发，做的时候就选择性失忆。","再加下去就要翻页了，离谱。","写下来就以为自己做了？天真。","任务清单比你的工作日志还厚。"], complete: ["哦，终于肯动一下了？","就这？我还以为要放烟花呢。","一个任务而已，至于这么开心？","恭喜你离成功又近了0.01%。","做完了？你确定不是手滑点了勾？","消灭一个，还剩一堆，继续吧。","值得鼓励，虽然你只是做了该做的事。","这个任务完成了，下个任务打算拖几天？"], complete_tsundere: ["哼，才完成一个而已，我一点都没高兴！","别误会，我只是刚好路过看到你点了勾。","完、完成了？…我才不会说干得漂亮呢！","做的不错……啊不对，我是说你还差得远呢！","算你勉强及格，但别指望我会表扬你。","哼～这次就让你得意一下，下不为例！","没、没想到你还真能做完，稍微对你改观了0.1%。","我才没有偷偷帮你加油呢，少自作多情了！"], delete: ["删了就等于没做过？现代掩耳盗铃。","清理大师又上线了，实质进度还是零。","逃避虽然可耻，但对你来说很正常。","只要删得够快，任务就追不上你。","眼不见为净，对吧？","你删的不是任务，是你的良心。","一键清空的感觉是不是特别爽？然而并没用。","删吧删吧，反正你也不会做了。"], fortune: ["让命运替你做决定？出息。","抽到又怎样，你会去做吗？","随机选一个，然后继续发呆——这套流程我太熟了。","命运说：该干活了。你：再等五分钟。","抽签只是给你一个拖延的理由。","恭喜你抽到「继续摸鱼」大吉签！","签上写着：今日不宜开工，宜继续躺平。","如果你信抽签能帮你，不如信我能帮你做。"], focusEscape: ["25分钟都坐不住？手机有那么好玩吗？","逃跑的速度比专注快多了，天赋异禀。","专注失败，获得「逃兵」称号。","才几分钟就溜了，我白噪音都白放了。","你专心致志地逃跑了，也算是一种专注吧。","半途而废，不愧是你。","下次先把手机关了再点开始好吗？"], idle: ["你发呆的样子真可爱，像一棵盆栽。","鼠标都不动了，是睡着了吗？","我帮你数羊吧：一个待办、两个待办……","页面打开了，但你的大脑还在加载中。","盯～你打算什么时候才想起还有任务？","沉默是今晚的康桥，但任务不会自己消失。","一动不动是王八，你果然厉害。","喂，活着就吱一声。"] };
             function randomFromArray(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
             function getSpriteState(){ const total=tasks.length, completed=tasks.filter(t=>t.completed).length, percent=total===0?0:Math.round((completed/total)*100); if(percent===0) return 'zero'; if(percent<=25) return 'low'; if(percent<=75) return 'mid'; if(percent<100) return 'high'; return 'full'; }
-
-            // ========== 头像与气泡 ==========
             const speechBubble = document.getElementById('speechBubble');
             const avatarImg = document.getElementById('avatarImg');
             const DEFAULT_AVATAR = 'catgirl.png';
             const avatarUpload = document.getElementById('avatarUpload');
             const savedAvatar = localStorage.getItem('customAvatar');
             if (savedAvatar) avatarImg.src = savedAvatar;
-
-            // 智能气泡定位（不会超出屏幕左右边界）
             function showBubble(text, duration=3500) {
                 if (!speechBubble) return;
                 speechBubble.textContent = text;
                 speechBubble.classList.add('show');
                 const rect = avatarImg.getBoundingClientRect();
                 const bw = speechBubble.offsetWidth;
-                // 气泡底部在头像顶部上方
                 const top = rect.top - speechBubble.offsetHeight - 8;
-                // 水平居中，但限制在视口内
                 let left = rect.left + rect.width/2 - bw/2;
                 left = Math.max(4, Math.min(left, window.innerWidth - bw - 4));
                 speechBubble.style.top = Math.max(4, top) + 'px';
@@ -593,31 +300,14 @@
                 clearTimeout(speechBubble._timeout);
                 speechBubble._timeout = setTimeout(() => { speechBubble.classList.remove('show'); }, duration);
             }
-
-            function spriteReact(action) {
-                let line;
-                if (action === 'complete') {
-                    if (Math.random() < 0.2) line = randomFromArray(actionLines.complete_tsundere);
-                    else line = randomFromArray(actionLines.complete);
-                } else if (action && actionLines[action]) {
-                    line = randomFromArray(actionLines[action]);
-                } else {
-                    line = randomFromArray(spriteLines[getSpriteState()]);
-                }
-                showBubble(line);
-            }
-
+            function spriteReact(action) { let line; if (action === 'complete') { if (Math.random() < 0.2) line = randomFromArray(actionLines.complete_tsundere); else line = randomFromArray(actionLines.complete); } else if (action && actionLines[action]) { line = randomFromArray(actionLines[action]); } else { line = randomFromArray(spriteLines[getSpriteState()]); } showBubble(line); }
             function handleAvatarUpload(file) { if (!file || !file.type.startsWith('image/')) return; const reader = new FileReader(); reader.onload = function(e) { const dataUrl = e.target.result; avatarImg.src = dataUrl; localStorage.setItem('customAvatar', dataUrl); showBubble('头像已更新！点击↩️按钮可恢复默认~'); }; reader.readAsDataURL(file); }
             document.getElementById('changeAvatarBtn').addEventListener('click', (e) => { e.stopPropagation(); avatarUpload.click(); });
             avatarUpload.addEventListener('change', (e) => { if (e.target.files && e.target.files[0]) handleAvatarUpload(e.target.files[0]); avatarUpload.value = ''; });
             document.getElementById('resetAvatarBtn').addEventListener('click', (e) => { e.stopPropagation(); avatarImg.src = DEFAULT_AVATAR; localStorage.removeItem('customAvatar'); showBubble('已恢复成原本的猫耳少女啦~'); });
             document.getElementById('avatarWrap').addEventListener('click', (e) => { if (e.target === avatarImg) spriteReact(); });
-
             let idleTimer; function resetIdleTimer() { clearTimeout(idleTimer); idleTimer = setTimeout(() => spriteReact('idle'), 30000); }
-            ['click','keydown','mousemove','touchstart'].forEach(ev => document.addEventListener(ev, resetIdleTimer));
-            resetIdleTimer();
-
-            // ========== 任务逻辑 ==========
+            ['click','keydown','mousemove','touchstart'].forEach(ev => document.addEventListener(ev, resetIdleTimer)); resetIdleTimer();
             function saveTasks() { localStorage.setItem('imgTasksFull', JSON.stringify(tasks)); }
             function generateId() { return Date.now() + Math.random().toString(36).substring(2,11); }
             function isExpired(task) { return task.dueDate && new Date(task.dueDate) < new Date() && !task.completed; }
@@ -630,76 +320,14 @@
             function toggleTask(id) { const task = tasks.find(t => t.id == id); if (!task) return; if (task.subtasks && task.subtasks.length > 0 && !task.subtasks.every(st => st.completed) && !task.completed) { showBubble('还有子步骤没完成，先把它们搞定吧！'); renderTasks(); return; } task.completed = !task.completed; if (task.completed) { dailyData[todayStr].completed += 1; saveDailyData(); spriteReact('complete'); if (fortuneTaskId == id) fortuneTaskId = null; } else { dailyData[todayStr].completed = Math.max(0, dailyData[todayStr].completed - 1); saveDailyData(); } saveTasks(); renderTasks(); updateAchievements(); }
             function deleteTask(id) { if (!confirm('确定删除？')) return; tasks = tasks.filter(t => t.id != id); if (fortuneTaskId == id) fortuneTaskId = null; saveTasks(); renderTasks(); spriteReact('delete'); }
             function drawFortune() { if (fortuneTaskId) { showBubble("上一个天命任务还没完成，想抽新的？脸呢？"); return; } const active = tasks.filter(t => !t.completed); if (active.length === 0) { showBubble("没任务了还抽签，你是想抽个寂寞吗？"); return; } fortuneTaskId = active[Math.floor(Math.random()*active.length)].id; renderTasks(); spriteReact('fortune'); setTimeout(() => { const el = document.querySelector('.task-item.fortune-highlight'); if (el) el.scrollIntoView({ behavior:'smooth', block:'center' }); }, 100); }
-
-            // ========== 专注空间（稳定版白噪音） ==========
             let focusTimer, focusSeconds=1500, focusRunning=false, focusPaused=false;
             let audioContext, noiseNode, gainNode, currentSound='rain';
-            function createGentleNoiseBuffer(type) {
-                if (!audioContext) { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; } }
-                const sampleRate = audioContext.sampleRate;
-                const length = sampleRate * 2;
-                const buffer = audioContext.createBuffer(1, length, sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < length; i++) {
-                    let sample = 0;
-                    if (type === 'rain') {
-                        let raw = Math.random() * 2 - 1;
-                        if (i === 0) sample = raw * 0.1;
-                        else sample = data[i-1] + 0.02 * (raw - data[i-1]);
-                    } else if (type === 'stream') {
-                        let noise = (Math.random() * 2 - 1) * 0.3;
-                        let wave = Math.sin(i * 0.03) * 0.2 + Math.sin(i * 0.017) * 0.1;
-                        sample = noise + wave;
-                    } else if (type === 'cafe') {
-                        let noise = (Math.random() * 2 - 1) * 0.2;
-                        let hum = Math.sin(i * 0.005) * 0.1 + Math.sin(i * 0.008) * 0.05;
-                        sample = noise + hum;
-                    }
-                    data[i] = sample * 0.5;
-                }
-                return buffer;
-            }
-            function startNoise(type) {
-                if (!audioContext) { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return; } }
-                stopNoise();
-                const buffer = createGentleNoiseBuffer(type);
-                if (!buffer) return;
-                noiseNode = audioContext.createBufferSource();
-                noiseNode.buffer = buffer;
-                noiseNode.loop = true;
-                gainNode = audioContext.createGain();
-                const volSlider = document.getElementById('volumeSlider');
-                gainNode.gain.value = volSlider ? parseInt(volSlider.value, 10) / 100 : 0.3;
-                noiseNode.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                noiseNode.start();
-            }
-            function stopNoise() {
-                if (noiseNode) { try { noiseNode.stop(); } catch(e) {} noiseNode.disconnect(); noiseNode = null; }
-                if (gainNode) { gainNode.disconnect(); gainNode = null; }
-            }
-            function openFocusModal(taskId) {
-                document.getElementById('focusModal').dataset.taskId = taskId;
-                focusSeconds = 1500;
-                updateTimerDisplay();
-                focusRunning = false; focusPaused = false;
-                document.getElementById('startFocus').style.display = 'inline-block';
-                document.getElementById('pauseFocus').style.display = 'none';
-                document.getElementById('escapeNote').textContent = '';
-                document.getElementById('focusModal').classList.add('active');
-                stopNoise();
-            }
-            function closeFocusModal() {
-                clearInterval(focusTimer);
-                stopNoise();
-                document.getElementById('focusModal').classList.remove('active');
-            }
-            function updateTimerDisplay() {
-                const m = Math.floor(focusSeconds / 60), s = focusSeconds % 60;
-                document.getElementById('timerDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-            }
-
-            // 事件绑定
+            function createGentleNoiseBuffer(type) { if (!audioContext) { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; } } const sampleRate = audioContext.sampleRate; const length = sampleRate * 2; const buffer = audioContext.createBuffer(1, length, sampleRate); const data = buffer.getChannelData(0); for (let i = 0; i < length; i++) { let sample = 0; if (type === 'rain') { let raw = Math.random() * 2 - 1; if (i === 0) sample = raw * 0.1; else sample = data[i-1] + 0.02 * (raw - data[i-1]); } else if (type === 'stream') { let noise = (Math.random() * 2 - 1) * 0.3; let wave = Math.sin(i * 0.03) * 0.2 + Math.sin(i * 0.017) * 0.1; sample = noise + wave; } else if (type === 'cafe') { let noise = (Math.random() * 2 - 1) * 0.2; let hum = Math.sin(i * 0.005) * 0.1 + Math.sin(i * 0.008) * 0.05; sample = noise + hum; } data[i] = sample * 0.5; } return buffer; }
+            function startNoise(type) { if (!audioContext) { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return; } } stopNoise(); const buffer = createGentleNoiseBuffer(type); if (!buffer) return; noiseNode = audioContext.createBufferSource(); noiseNode.buffer = buffer; noiseNode.loop = true; gainNode = audioContext.createGain(); const volSlider = document.getElementById('volumeSlider'); gainNode.gain.value = volSlider ? parseInt(volSlider.value, 10) / 100 : 0.3; noiseNode.connect(gainNode); gainNode.connect(audioContext.destination); noiseNode.start(); }
+            function stopNoise() { if (noiseNode) { try { noiseNode.stop(); } catch(e) {} noiseNode.disconnect(); noiseNode = null; } if (gainNode) { gainNode.disconnect(); gainNode = null; } }
+            function openFocusModal(taskId) { document.getElementById('focusModal').dataset.taskId = taskId; focusSeconds = 1500; updateTimerDisplay(); focusRunning = false; focusPaused = false; document.getElementById('startFocus').style.display = 'inline-block'; document.getElementById('pauseFocus').style.display = 'none'; document.getElementById('escapeNote').textContent = ''; document.getElementById('focusModal').classList.add('active'); stopNoise(); }
+            function closeFocusModal() { clearInterval(focusTimer); stopNoise(); document.getElementById('focusModal').classList.remove('active'); }
+            function updateTimerDisplay() { const m = Math.floor(focusSeconds / 60), s = focusSeconds % 60; document.getElementById('timerDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
             document.getElementById('addTaskBtn').addEventListener('click', addTask);
             document.getElementById('taskNameInput').addEventListener('keypress', e => { if(e.key==='Enter') addTask(); });
             document.getElementById('taskList').addEventListener('click', e => { const t = e.target; if (t.classList.contains('task-checkbox')) toggleTask(t.dataset.id); else if (t.classList.contains('delete-btn')) deleteTask(t.dataset.id); else if (t.classList.contains('edit-btn')) { const task = tasks.find(x=>x.id==t.dataset.id); if(task){ const nt=prompt('修改任务',task.text); if(nt&&nt.trim()){ task.text=nt.trim(); saveTasks(); renderTasks(); } } } else if (t.classList.contains('focus-btn')) openFocusModal(t.dataset.id); });
@@ -709,63 +337,10 @@
             document.getElementById('clearExpired').addEventListener('click', () => { tasks = tasks.filter(t => !isExpired(t)); saveTasks(); renderTasks(); });
             document.getElementById('fortuneBtn').addEventListener('click', drawFortune);
             document.getElementById('volumeSlider').addEventListener('input', () => { if(gainNode) gainNode.gain.value = parseInt(document.getElementById('volumeSlider').value,10)/100; });
-            document.getElementById('startFocus').addEventListener('click', () => {
-                if(focusRunning && !focusPaused) return;
-                focusRunning = true; focusPaused = false;
-                document.getElementById('startFocus').style.display = 'none';
-                document.getElementById('pauseFocus').style.display = 'inline-block';
-                startNoise(currentSound);
-                focusTimer = setInterval(() => {
-                    if(focusSeconds <= 0) {
-                        clearInterval(focusTimer);
-                        dailyData[todayStr].focusSeconds += 1500;
-                        saveDailyData();
-                        updateDailyStatsDisplay();
-                        if(!achievements.no_escape){
-                            achievements.no_escape = true;
-                            localStorage.setItem('imgAchievements', JSON.stringify(achievements));
-                            updateAchievementBadge();
-                            showBubble('🏆 解锁成就：绝不逃跑！', 5000);
-                        }
-                        updateAchievements();
-                        showBubble('专注结束，但你真的专注了吗？');
-                        closeFocusModal();
-                        return;
-                    }
-                    focusSeconds--;
-                    updateTimerDisplay();
-                }, 1000);
-            });
-            document.getElementById('pauseFocus').addEventListener('click', () => {
-                if(!focusRunning || focusPaused) return;
-                focusPaused = true;
-                clearInterval(focusTimer);
-                document.getElementById('pauseFocus').style.display = 'none';
-                document.getElementById('startFocus').style.display = 'inline-block';
-                document.getElementById('startFocus').textContent = '▶ 继续';
-                stopNoise();
-            });
-            document.getElementById('stopFocus').addEventListener('click', () => {
-                if(focusRunning && !focusPaused) {
-                    const elapsed = 1500 - focusSeconds;
-                    dailyData[todayStr].focusSeconds += elapsed;
-                    saveDailyData();
-                    updateDailyStatsDisplay();
-                    spriteReact('focusEscape');
-                }
-                clearInterval(focusTimer);
-                stopNoise();
-                closeFocusModal();
-            });
-            document.querySelectorAll('.sound-btn').forEach(b => b.addEventListener('click', () => {
-                document.querySelectorAll('.sound-btn').forEach(x => x.classList.remove('active'));
-                b.classList.add('active');
-                currentSound = b.dataset.sound;
-                if(focusRunning && !focusPaused) {
-                    stopNoise();
-                    startNoise(currentSound);
-                }
-            }));
+            document.getElementById('startFocus').addEventListener('click', () => { if(focusRunning && !focusPaused) return; focusRunning = true; focusPaused = false; document.getElementById('startFocus').style.display = 'none'; document.getElementById('pauseFocus').style.display = 'inline-block'; startNoise(currentSound); focusTimer = setInterval(() => { if(focusSeconds <= 0) { clearInterval(focusTimer); dailyData[todayStr].focusSeconds += 1500; saveDailyData(); updateDailyStatsDisplay(); if(!achievements.no_escape){ achievements.no_escape = true; localStorage.setItem('imgAchievements', JSON.stringify(achievements)); updateAchievementBadge(); showBubble('🏆 解锁成就：绝不逃跑！', 5000); } updateAchievements(); showBubble('专注结束，但你真的专注了吗？'); closeFocusModal(); return; } focusSeconds--; updateTimerDisplay(); }, 1000); });
+            document.getElementById('pauseFocus').addEventListener('click', () => { if(!focusRunning || focusPaused) return; focusPaused = true; clearInterval(focusTimer); document.getElementById('pauseFocus').style.display = 'none'; document.getElementById('startFocus').style.display = 'inline-block'; document.getElementById('startFocus').textContent = '▶ 继续'; stopNoise(); });
+            document.getElementById('stopFocus').addEventListener('click', () => { if(focusRunning && !focusPaused) { const elapsed = 1500 - focusSeconds; dailyData[todayStr].focusSeconds += elapsed; saveDailyData(); updateDailyStatsDisplay(); spriteReact('focusEscape'); } clearInterval(focusTimer); stopNoise(); closeFocusModal(); });
+            document.querySelectorAll('.sound-btn').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.sound-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); currentSound = b.dataset.sound; if(focusRunning && !focusPaused) { stopNoise(); startNoise(currentSound); } }));
             document.getElementById('focusModal').addEventListener('click', e => { if(e.target === document.getElementById('focusModal')) closeFocusModal(); });
             document.getElementById('achievementBadge').addEventListener('click', () => { const list = document.getElementById('achievementList'); list.innerHTML = achievementDefs.map(d => `<div class="achievement-item ${achievements[d.id]?'':'locked'}"><span>${achievements[d.id]?'✅':'🔒'} ${d.name}</span><span style="font-size:11px">${d.desc}</span></div>`).join(''); document.getElementById('achievementModal').classList.add('active'); });
             document.getElementById('closeAchievement').addEventListener('click', () => document.getElementById('achievementModal').classList.remove('active'));
@@ -777,6 +352,16 @@
             initTheme(); updateAchievementBadge(); renderTasks(); updateDailyStatsDisplay(); document.getElementById('taskNameInput')?.focus();
             setTimeout(() => showBubble('喵～今天要做什么来着？快列出来！'), 600);
         })();
+    </script>
+    <!-- ===== PWA Service Worker 注册 ===== -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(() => {
+                    // 静默处理注册失败（如本地文件打开）
+                });
+            });
+        }
     </script>
 </body>
 </html>
